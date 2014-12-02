@@ -3,6 +3,9 @@ import ast
 from functools import partial
 from collections import OrderedDict
 
+def cell_magic(func):
+    return func
+
 def parse_args(line):
     lines = line.split()
     kwargs = {}
@@ -46,21 +49,36 @@ def _exec(cell, args):
     exec(code, ns)
     changed = {k:v for k, v in ns.items() if k not in user_ns or v is not user_ns[k]}
 
+@cell_magic
 def scoped(line, cell):
+    """
+    Will scope a block so that it will have access to the ipython ns
+    but will not modify it.
+
+    Note, this only applies to shallow modifications. If you modify an
+    attribute of global, then that attribute would change.
+    """
     args = parse_args(line)
     name = args.get('func_name', None)
     if name:
         scoped_cells[name] = cell
     return _exec(cell, args)
 
+@cell_magic
 def run_cell(line):
+    """ run a named scoped magic """
     bits = line.split()
     name = bits.pop(0)
     args = parse_args(' '.join(bits))
     cell = scoped_cells[name]
     return _exec(cell, args)
 
+@cell_magic
 def petri(line, cell):
+    """
+    Allows a multi-cell. Basically, it will break up the cell by %% blocks
+    and then execute each one in turn.
+    """
     ip = get_ipython()
     cells = OrderedDict()
     cells[''] = []
