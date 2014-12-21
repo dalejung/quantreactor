@@ -10,11 +10,15 @@ def have_var(expr, args):
         return False
 
     for target in expr.targets:
+        if not isinstance(target, ast.Name):
+            continue
+
         if target.id in args:
             return True
 
-def _exec(cell, args=[]):
-    ns = {}
+def _exec(cell, args={}, ns=None):
+    if ns is None:
+        ns = {}
     user_ns = get_ipython().user_ns  # flake8: noqa
     ns.update(user_ns)
     ns.update(args)
@@ -24,4 +28,6 @@ def _exec(cell, args=[]):
     module.body = list(filter(lambda expr: not have_var(expr, args), module.body))
     code = compile(module, '<dale>', 'exec')
     exec(code, ns)
+    # not sure what to do with changed
     changed = {k:v for k, v in ns.items() if k not in user_ns or v is not user_ns[k]}
+    return ns

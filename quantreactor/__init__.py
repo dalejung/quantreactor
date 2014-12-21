@@ -5,6 +5,8 @@ from .runcode import _exec
 from . import datacache
 from . import output_display
 import imp
+from earthdragon.tools.timer import Timer
+
 imp.reload(datacache)
 imp.reload(output_display)
 
@@ -25,7 +27,9 @@ def parse_args(line):
         kwargs[k] = v
     return kwargs
 
+# these module level global should be in a class
 scoped_cells = {}
+scoped_namespaces = {}
 
 @cell_magic
 def scoped(line, cell):
@@ -36,11 +40,30 @@ def scoped(line, cell):
     Note, this only applies to shallow modifications. If you modify an
     attribute of global, then that attribute would change.
     """
+    name = None
+    try:
+        bits = line.split(" ")
+        if '=' not in bits[0]:
+            name = bits[0]
+    except:
+        pass
     args = parse_args(line)
-    name = args.get('func_name', None)
+
+    scoped_ns = None
     if name:
         scoped_cells[name] = cell
-    return _exec(cell, args)
+        scoped_ns = scoped_namespaces.setdefault(name, {})
+
+    if '--inherit' in args:
+        parent_name = args['--inherit']
+        parent_ns = scoped_namespaces.setdefault(parent_name, {})
+        scoped_ns.update(parent_ns)
+
+    with Timer(name):
+        ns = _exec(cell, args, ns=scoped_ns)
+
+    if name:
+        scoped_namespaces[name] = ns
 
 @cell_magic
 def run_cell(line):
