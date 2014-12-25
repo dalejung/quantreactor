@@ -17,14 +17,19 @@ def parse_args(line):
     lines = line.split()
     kwargs = {}
     for line in lines:
-        if '=' not in line:
+        if '=' in line:
+            k, v = line.split('=')
+            try:
+                v = int(v)
+            except:
+                pass
+            kwargs[k] = v
             continue
-        k, v = line.split('=')
-        try:
-            v = int(v)
-        except:
-            pass
-        kwargs[k] = v
+
+        if line.startswith('--'):
+            kwargs[line] = True
+            continue
+
     return kwargs
 
 # these module level global should be in a class
@@ -51,8 +56,13 @@ def scoped(line, cell):
 
     scoped_ns = None
     if name:
-        scoped_cells[name] = cell
         scoped_ns = scoped_namespaces.setdefault(name, {})
+
+    if name and '--cell-func' in args:
+        scoped_cells[name] = cell
+
+    if '--no-run' in args:
+        return
 
     if '--inherit' in args:
         parent_name = args['--inherit']
@@ -72,7 +82,7 @@ def run_cell(line):
     name = bits.pop(0)
     args = parse_args(' '.join(bits))
     cell = scoped_cells[name]
-    return _exec(cell, args)
+    _exec(cell, args)
 
 @cell_magic
 def petri(line, cell):
