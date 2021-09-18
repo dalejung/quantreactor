@@ -1,7 +1,6 @@
-from dalestrat.data_decorator import DataStore
 from . import runcode
 import imp
-from edamame.tools.profiler import Profiler
+from earthdragon.tools.profiler import Profiler
 
 imp.reload(runcode)
 
@@ -14,8 +13,10 @@ def _datacache(line, cell):
     vars = line.split()
     namespace = vars.pop(0)
     _datastore = user_ns.setdefault('_datastore', {})
+
     if namespace not in _datastore:
         _datastore[namespace] = DataStore(namespace)
+
     ds = _datastore.get(namespace)
 
     for key in vars:
@@ -40,9 +41,8 @@ def _datacache(line, cell):
 
         ds[key] = user_ns[key]
 
+
 def datacache(line, cell):
-    #with Profiler(_datacache):
-    #    return _datacache(line, cell)
     return _datacache(line, cell)
 
 
